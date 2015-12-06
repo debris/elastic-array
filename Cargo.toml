@@ -1,0 +1,8 @@
+[package]
+name = "elastic-array"
+version = "0.1.0"
+authors = ["debris <marek.kotewicz@gmail.com>"]
+
+[dev-dependencies]
+rand = "*"
+to_compare = { path = "to_compare" }
