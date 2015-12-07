@@ -66,6 +66,11 @@ macro_rules! impl_elastic_array {
 				}
 			}
 
+			pub fn clear(&mut self) {
+				self.raw = $dummy::Arr(unsafe { ::std::mem::uninitialized() });
+				self.len = 0;
+			}
+
 			pub fn insert_slice(&mut self, index: usize, elements: &[$elem]) {
 				use std::ptr;
 
@@ -138,6 +143,16 @@ macro_rules! impl_elastic_array {
 				match self.raw {
 					$dummy::Arr(ref a) => &a[..self.len],
 					$dummy::Vec(ref v) => v
+				}
+			}
+		}
+
+		impl ::std::ops::DerefMut for $name {
+			#[inline]
+			fn deref_mut(&mut self) -> &mut [$elem] {
+				match self.raw {
+					$dummy::Arr(ref mut a) => &mut a[..self.len],
+					$dummy::Vec(ref mut v) => v
 				}
 			}
 		}
