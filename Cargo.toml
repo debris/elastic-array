@@ -1,6 +1,6 @@
 [package]
 name = "elastic-array"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["debris <marek.kotewicz@gmail.com>"]
 license = "MIT"
 description = "Elastic vector backed by fixed size array"
