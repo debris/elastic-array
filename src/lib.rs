@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! impl_elastic_array {
-	($name: ident, $elem: ident, $size: expr) => (
+	($name: ident, $elem: ty, $size: expr) => (
 		#[doc(hidden)]
 		mod _inner {
 			pub enum $name {
