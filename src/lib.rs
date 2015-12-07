@@ -66,6 +66,69 @@ macro_rules! impl_elastic_array {
 					_inner::$name::Vec(ref mut v) => v.pop()
 				}
 			}
+
+			pub fn insert_slice(&mut self, index: usize, elements: &[$elem]) {
+				use std::ptr;
+
+				let elen = elements.len();
+
+				if elen == 0 {
+					return;
+				}
+				
+				let len = self.len;
+				assert!(index <= len);
+
+				match self.raw {
+					// it fits in array
+					_inner::$name::Arr(ref mut a) if len + elen <= a.len() => unsafe {
+						let p = a.as_mut_ptr().offset(index as isize);
+						let ep = elements.as_ptr();
+
+						// shift everything by elen, to make space
+						ptr::copy(p, p.offset(elen as isize), len - index);
+						// write new elements
+						ptr::copy(ep, p, elen);
+					},
+					// it deosn't, must be rewritten to vec
+					_inner::$name::Arr(_) => unsafe {
+						let mut vec = vec![];
+						vec.reserve(self.len + elen);
+						{
+							let p = vec.as_mut_ptr();
+							let ob = self.raw.slice().as_ptr();
+							let ep = elements.as_ptr();
+							let oe = ob.offset(index as isize);
+							
+							// copy begining of an array
+							ptr::copy(ob, p, index);
+
+							// copy new elements
+							ptr::copy(ep, p.offset(index as isize), elen);
+
+							// copy end of an array	
+							ptr::copy(oe, p.offset((index + elen) as isize), len - index);
+						}
+						vec.set_len(self.len + elen);
+						self.raw = _inner::$name::Vec(vec);
+					},
+					// just insert it in to vec
+					_inner::$name::Vec(ref mut v) => unsafe {
+						v.reserve(elen);
+
+						let p = v.as_mut_ptr().offset(index as isize);
+						let ep = elements.as_ptr();
+
+						// shift everything by elen, to make space
+						ptr::copy(p, p.offset(elen as isize), len - index);
+						// write new elements
+						ptr::copy(ep, p, elen);
+
+						v.set_len(self.len + elen);
+					}
+				}
+				self.len += elen;
+			}
 		}
 
 		impl ::std::ops::Deref for $name {
@@ -81,9 +144,6 @@ macro_rules! impl_elastic_array {
 		}
 	)
 }
-
-
-
 
 #[cfg(test)]
 mod tests {
