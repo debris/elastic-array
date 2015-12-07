@@ -1,44 +1,43 @@
 #[macro_export]
 macro_rules! impl_elastic_array {
-	($name: ident, $elem: ty, $size: expr) => (
+	($name: ident, $dummy: ident, $elem: ident, $size: expr) => (
 		#[doc(hidden)]
-		mod _inner {
-			pub enum $name {
-				Arr([$elem; $size]),
-				Vec(Vec<$elem>)
-			}
+		enum $dummy {
+			Arr([$elem; $size]),
+			Vec(Vec<$elem>)
+		}
 
-			impl $name {
-				pub fn slice(&self) -> &[$elem] {
-					match *self {
-						$name::Arr(ref v) => v,
-						$name::Vec(ref v) => v
-					}
+		impl $dummy {
+			#[doc(hidden)]
+			pub fn slice(&self) -> &[$elem] {
+				match *self {
+					$dummy::Arr(ref v) => v,
+					$dummy::Vec(ref v) => v
 				}
 			}
 		}
 
 		struct $name {
-			raw: _inner::$name,
+			raw: $dummy,
 			len: usize
 		}
 
 		impl $name {
 			pub fn new() -> $name {
 				$name {
-					raw: _inner::$name::Arr(unsafe { ::std::mem::uninitialized() }),
+					raw: $dummy::Arr(unsafe { ::std::mem::uninitialized() }),
 					len: 0
 				}
 			}
 
 			pub fn push(&mut self, e: $elem) {
 				match self.raw {
-					_inner::$name::Arr(ref mut a) if self.len < a.len() => {
+					$dummy::Arr(ref mut a) if self.len < a.len() => {
 						unsafe {
 							*a.get_unchecked_mut(self.len) = e;
 						}
 					},
-					_inner::$name::Arr(_) => {
+					$dummy::Arr(_) => {
 						let mut vec = vec![];
 						vec.reserve(self.len + 1);
 
@@ -48,9 +47,9 @@ macro_rules! impl_elastic_array {
 						}
 
 						vec.push(e);
-						self.raw = _inner::$name::Vec(vec);
+						self.raw = $dummy::Vec(vec);
 					},
-					_inner::$name::Vec(ref mut v) => v.push(e)
+					$dummy::Vec(ref mut v) => v.push(e)
 				}
 				self.len += 1;
 			}
@@ -62,8 +61,8 @@ macro_rules! impl_elastic_array {
 
 				self.len -= 1;
 				match self.raw {
-					_inner::$name::Arr(ref a) => Some(a[self.len]),
-					_inner::$name::Vec(ref mut v) => v.pop()
+					$dummy::Arr(ref a) => Some(a[self.len]),
+					$dummy::Vec(ref mut v) => v.pop()
 				}
 			}
 
@@ -81,7 +80,7 @@ macro_rules! impl_elastic_array {
 
 				match self.raw {
 					// it fits in array
-					_inner::$name::Arr(ref mut a) if len + elen <= a.len() => unsafe {
+					$dummy::Arr(ref mut a) if len + elen <= a.len() => unsafe {
 						let p = a.as_mut_ptr().offset(index as isize);
 						let ep = elements.as_ptr();
 
@@ -91,7 +90,7 @@ macro_rules! impl_elastic_array {
 						ptr::copy(ep, p, elen);
 					},
 					// it deosn't, must be rewritten to vec
-					_inner::$name::Arr(_) => unsafe {
+					$dummy::Arr(_) => unsafe {
 						let mut vec = vec![];
 						vec.reserve(self.len + elen);
 						{
@@ -110,10 +109,10 @@ macro_rules! impl_elastic_array {
 							ptr::copy(oe, p.offset((index + elen) as isize), len - index);
 						}
 						vec.set_len(self.len + elen);
-						self.raw = _inner::$name::Vec(vec);
+						self.raw = $dummy::Vec(vec);
 					},
 					// just insert it in to vec
-					_inner::$name::Vec(ref mut v) => unsafe {
+					$dummy::Vec(ref mut v) => unsafe {
 						v.reserve(elen);
 
 						let p = v.as_mut_ptr().offset(index as isize);
@@ -137,18 +136,25 @@ macro_rules! impl_elastic_array {
 			#[inline]
 			fn deref(&self) -> &[$elem] {
 				match self.raw {
-					_inner::$name::Arr(ref a) => &a[..self.len],
-					_inner::$name::Vec(ref v) => v
+					$dummy::Arr(ref a) => &a[..self.len],
+					$dummy::Vec(ref v) => v
 				}
 			}
 		}
 	)
 }
 
+
+
 #[cfg(test)]
 mod tests {
-	impl_elastic_array!(BytesShort, u8, 2);
+
+	impl_elastic_array!(BytesShort, BytesShortDummy, u8, 2);
 	
+	#[test]
+	fn ret_struct() {
+	}
+
 	#[test]
 	fn it_works() {
 		let mut bytes = BytesShort::new();
@@ -167,6 +173,17 @@ mod tests {
 		assert_eq!(bytes.pop(), Some(2));
 		assert_eq!(bytes.pop(), Some(1));
 		assert_eq!(bytes.pop(), None);
+	}
+
+	#[test]
+	fn test_insert_slice() {
+		let mut bytes = BytesShort::new();
+		bytes.push(1);
+		bytes.push(2);
+		bytes.insert_slice(1, &[3, 4]);
+		assert_eq!(bytes.len(), 4);
+		let r: &[u8] = &bytes;
+		assert_eq!(r, &[1, 3, 4, 2]);
 	}
 }
 
