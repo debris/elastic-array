@@ -2,7 +2,10 @@
 name = "elastic-array"
 version = "0.1.0"
 authors = ["debris <marek.kotewicz@gmail.com>"]
+license = "MIT"
+description = "Elastic vector backed by fixed size array"
+repository = "https://github.com/debris/elastic-array"
 
 [dev-dependencies]
 rand = "*"
-to_compare = { path = "to_compare" }
+#to_compare = { version = "0.1", path = "to_compare" }
