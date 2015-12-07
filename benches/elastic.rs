@@ -7,13 +7,13 @@
 extern crate test;
 extern crate rand;
 
-#[macro_use]
 extern crate elastic_array;
 extern crate to_compare;
 
 use test::Bencher;
 use rand::random;
 
+use elastic_array::ElasticArray1024;
 use to_compare::*;
 
 const LEN: usize = 2048;
@@ -26,7 +26,7 @@ fn gen_data() -> [u8; LEN] {
 	arr
 }
 
-impl_elastic_array!(BytesShort, u8, 1024);
+type BytesShort = ElasticArray1024<u8>;
 
 #[bench]
 fn bench_elastic_array(b: &mut Bencher) {

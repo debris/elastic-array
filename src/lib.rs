@@ -1,15 +1,15 @@
 #[macro_export]
 macro_rules! impl_elastic_array {
-	($name: ident, $dummy: ident, $elem: ident, $size: expr) => (
+	($name: ident, $dummy: ident, $size: expr) => (
 		#[doc(hidden)]
-		enum $dummy {
-			Arr([$elem; $size]),
-			Vec(Vec<$elem>)
+		enum $dummy <T> {
+			Arr([T; $size]),
+			Vec(Vec<T>)
 		}
 
-		impl $dummy {
+		impl <T> $dummy <T> {
 			#[doc(hidden)]
-			pub fn slice(&self) -> &[$elem] {
+			pub fn slice(&self) -> &[T] {
 				match *self {
 					$dummy::Arr(ref v) => v,
 					$dummy::Vec(ref v) => v
@@ -17,20 +17,20 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		struct $name {
-			raw: $dummy,
+		pub struct $name<T> {
+			raw: $dummy<T>,
 			len: usize
 		}
 
-		impl $name {
-			pub fn new() -> $name {
+		impl <T> $name<T> where T: Copy {
+			pub fn new() -> $name<T> {
 				$name {
 					raw: $dummy::Arr(unsafe { ::std::mem::uninitialized() }),
 					len: 0
 				}
 			}
 
-			pub fn push(&mut self, e: $elem) {
+			pub fn push(&mut self, e: T) {
 				match self.raw {
 					$dummy::Arr(ref mut a) if self.len < a.len() => {
 						unsafe {
@@ -54,7 +54,7 @@ macro_rules! impl_elastic_array {
 				self.len += 1;
 			}
 
-			pub fn pop(&mut self) -> Option<$elem> {
+			pub fn pop(&mut self) -> Option<T> {
 				if self.len == 0 {
 					return None;
 				}
@@ -71,7 +71,7 @@ macro_rules! impl_elastic_array {
 				self.len = 0;
 			}
 
-			pub fn insert_slice(&mut self, index: usize, elements: &[$elem]) {
+			pub fn insert_slice(&mut self, index: usize, elements: &[T]) {
 				use std::ptr;
 
 				let elen = elements.len();
@@ -135,11 +135,11 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl ::std::ops::Deref for $name {
-			type Target = [$elem];
+		impl <T>::std::ops::Deref for $name<T> {
+			type Target = [T];
 
 			#[inline]
-			fn deref(&self) -> &[$elem] {
+			fn deref(&self) -> &[T] {
 				match self.raw {
 					$dummy::Arr(ref a) => &a[..self.len],
 					$dummy::Vec(ref v) => v
@@ -147,9 +147,9 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl ::std::ops::DerefMut for $name {
+		impl <T>::std::ops::DerefMut for $name<T> {
 			#[inline]
-			fn deref_mut(&mut self) -> &mut [$elem] {
+			fn deref_mut(&mut self) -> &mut [T] {
 				match self.raw {
 					$dummy::Arr(ref mut a) => &mut a[..self.len],
 					$dummy::Vec(ref mut v) => v
@@ -159,16 +159,22 @@ macro_rules! impl_elastic_array {
 	)
 }
 
-
+impl_elastic_array!(ElasticArray2, ElasticArray2Dummy, 2);
+impl_elastic_array!(ElasticArray4, ElasticArray4Dummy, 4);
+impl_elastic_array!(ElasticArray8, ElasticArray8Dummy, 8);
+impl_elastic_array!(ElasticArray16, ElasticArray16Dummy, 16);
+impl_elastic_array!(ElasticArray32, ElasticArray32Dummy, 32);
+impl_elastic_array!(ElasticArray64, ElasticArray64Dummy, 64);
+impl_elastic_array!(ElasticArray128, ElasticArray128Dummy, 128);
+impl_elastic_array!(ElasticArray256, ElasticArray256Dummy, 256);
+impl_elastic_array!(ElasticArray512, ElasticArray512Dummy, 512);
+impl_elastic_array!(ElasticArray1024, ElasticArray1024Dummy, 1024);
+impl_elastic_array!(ElasticArray2048, ElasticArray2048Dummy, 2048);
 
 #[cfg(test)]
 mod tests {
 
-	impl_elastic_array!(BytesShort, BytesShortDummy, u8, 2);
-	
-	#[test]
-	fn ret_struct() {
-	}
+	type BytesShort = super::ElasticArray2<u8>;
 
 	#[test]
 	fn it_works() {
