@@ -71,6 +71,26 @@ macro_rules! impl_elastic_array {
 				self.len = 0;
 			}
 
+			pub fn append_slice(&mut self, elements: &[T]) {
+				let len = self.len;
+				self.insert_slice(len, elements)
+			}
+
+			pub fn to_vec(self) -> Vec<T> {
+				match self.raw {
+					$dummy::Arr(a) => {
+						let mut vec = vec![];
+						vec.reserve(self.len);
+						unsafe {	
+							::std::ptr::copy(a.as_ptr(), vec.as_mut_ptr(), self.len);
+							vec.set_len(self.len);
+						}
+						vec
+					}
+					$dummy::Vec(v) => v
+				}
+			}
+
 			pub fn insert_slice(&mut self, index: usize, elements: &[T]) {
 				use std::ptr;
 
@@ -205,6 +225,16 @@ mod tests {
 		assert_eq!(bytes.len(), 4);
 		let r: &[u8] = &bytes;
 		assert_eq!(r, &[1, 3, 4, 2]);
+	}
+
+	#[test]
+	fn append_slice() {
+		let mut bytes = BytesShort::new();
+		bytes.push(1);
+		bytes.append_slice(&[3, 4]);
+		let r: &[u8] = &bytes;
+		assert_eq!(r.len(), 3);
+		assert_eq!(r, &[1, 3 ,4]);
 	}
 }
 
