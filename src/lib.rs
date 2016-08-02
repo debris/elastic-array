@@ -1,3 +1,5 @@
+use std::hash::{Hash, Hasher};
+
 #[macro_export]
 macro_rules! impl_elastic_array {
 	($name: ident, $dummy: ident, $size: expr) => (
@@ -20,6 +22,27 @@ macro_rules! impl_elastic_array {
 		pub struct $name<T> {
 			raw: $dummy<T>,
 			len: usize
+		}
+
+		impl <T> Eq for $name <T> where T: Eq { } 
+
+		impl <T> PartialEq for $name <T> where T: PartialEq {
+			fn eq(&self, other: &Self) -> bool {
+				self.slice() == other.slice()
+			}
+		}
+
+		impl <'a, T, B> PartialEq<&'a [B]> for $name <T> where T: PartialEq<B> {
+			fn eq(&self, other: &&'a [B]) -> bool {
+				self.slice() == *other
+
+			}
+		}
+
+		impl <T> Hash for $name <T> where T: Hash {
+			fn hash<H>(&self, state: &mut H) where H: Hasher {
+				self.slice().hash(state)
+			}
 		}
 
 		impl <T> $name<T> where T: Copy {
@@ -155,15 +178,28 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
+		impl <T> $name<T> {
+			fn slice(&self) -> &[T] {
+				match self.raw {
+					$dummy::Arr(ref a) => &a[..self.len],
+					$dummy::Vec(ref v) => v
+				}
+			}
+		}
+
 		impl <T>::std::ops::Deref for $name<T> {
 			type Target = [T];
 
 			#[inline]
 			fn deref(&self) -> &[T] {
-				match self.raw {
-					$dummy::Arr(ref a) => &a[..self.len],
-					$dummy::Vec(ref v) => v
-				}
+				self.slice()
+			}
+		}
+
+		impl <T>::std::borrow::Borrow<[T]> for $name<T> {
+			#[inline]
+			fn borrow(&self) -> &[T] {
+				self.slice()
 			}
 		}
 
@@ -235,6 +271,18 @@ mod tests {
 		let r: &[u8] = &bytes;
 		assert_eq!(r.len(), 3);
 		assert_eq!(r, &[1, 3 ,4]);
+	}
+
+	#[test]
+	fn use_in_map() {
+		use std::collections::HashMap;
+		use std::borrow::Borrow;
+		let mut map: HashMap<BytesShort, i32> = HashMap::new();
+		let mut bytes = BytesShort::new();
+		bytes.append_slice(&[3, 4]);
+		assert_eq!(bytes.borrow() as &[u8], &[3, 4][..]);
+		map.insert(bytes, 1);
+		assert_eq!(map.get(&[3, 4][..]), Some(&1i32));
 	}
 }
 
