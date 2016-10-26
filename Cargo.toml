@@ -9,3 +9,6 @@ repository = "https://github.com/debris/elastic-array"
 [dev-dependencies]
 rand = "*"
 #to_compare = { version = "0.1", path = "to_compare" }
+
+[dependencies]
+heapsize = { version = "0.3", features = ["unstable"] }

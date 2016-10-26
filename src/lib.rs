@@ -1,4 +1,8 @@
+#[macro_use]
+extern crate heapsize;
 use std::hash::{Hash, Hasher};
+use std::fmt;
+use heapsize::HeapSizeOf;
 
 #[macro_export]
 macro_rules! impl_elastic_array {
@@ -19,12 +23,30 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
+		impl <T> Clone for $dummy <T> where T: Copy {
+			fn clone(&self) -> $dummy <T> {
+				match *self {
+					$dummy::Arr(ref a) => $dummy::Arr(*a),
+					$dummy::Vec(ref v) => $dummy::Vec(v.clone()),
+				}
+			}
+		}
+
 		pub struct $name<T> {
 			raw: $dummy<T>,
 			len: usize
 		}
 
 		impl <T> Eq for $name <T> where T: Eq { } 
+
+		impl <T> fmt::Debug for $name<T> where T: fmt::Debug {
+			fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+				match self.raw {
+					$dummy::Arr(ref a) => a.fmt(f),
+					$dummy::Vec(ref v) => v.fmt(f),
+				}
+			}
+		}
 
 		impl <T> PartialEq for $name <T> where T: PartialEq {
 			fn eq(&self, other: &Self) -> bool {
@@ -45,11 +67,42 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
+		impl <T> HeapSizeOf for $name<T> where T: HeapSizeOf {
+			fn heap_size_of_children(&self) -> usize {
+				match self.raw {
+					$dummy::Arr(_) => 0,
+					$dummy::Vec(ref v) => v.heap_size_of_children()
+				}
+			}
+		}
+
+		impl <T> Clone for $name <T> where T: Copy {
+			fn clone(&self) -> $name <T> {
+				$name {
+					raw: self.raw.clone(),
+					len: self.len,
+				}
+			}
+		}
+
 		impl <T> $name<T> where T: Copy {
 			pub fn new() -> $name<T> {
 				$name {
 					raw: $dummy::Arr(unsafe { ::std::mem::uninitialized() }),
 					len: 0
+				}
+			}
+
+			pub fn from_slice(slice: &[T]) -> $name<T> {
+				let mut v = $name::new();
+				v.append_slice(slice);
+				v
+			}
+
+			pub fn from_vec(vec: Vec<T>) -> $name<T> {
+				$name {
+					len: vec.len(),
+					raw: $dummy::Vec(vec),
 				}
 			}
 
@@ -196,6 +249,13 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
+		impl <T>::std::convert::AsRef<[T]> for $name<T> {
+			#[inline]
+			fn as_ref(&self) -> &[T] {
+				self.slice()
+			}
+		}
+
 		impl <T>::std::borrow::Borrow<[T]> for $name<T> {
 			#[inline]
 			fn borrow(&self) -> &[T] {
@@ -220,6 +280,7 @@ impl_elastic_array!(ElasticArray4, ElasticArray4Dummy, 4);
 impl_elastic_array!(ElasticArray8, ElasticArray8Dummy, 8);
 impl_elastic_array!(ElasticArray16, ElasticArray16Dummy, 16);
 impl_elastic_array!(ElasticArray32, ElasticArray32Dummy, 32);
+impl_elastic_array!(ElasticArray36, ElasticArray36Dummy, 36);
 impl_elastic_array!(ElasticArray64, ElasticArray64Dummy, 64);
 impl_elastic_array!(ElasticArray128, ElasticArray128Dummy, 128);
 impl_elastic_array!(ElasticArray256, ElasticArray256Dummy, 256);
