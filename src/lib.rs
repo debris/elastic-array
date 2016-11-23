@@ -42,7 +42,7 @@ macro_rules! impl_elastic_array {
 		impl <T> fmt::Debug for $name<T> where T: fmt::Debug {
 			fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 				match self.raw {
-					$dummy::Arr(ref a) => a.fmt(f),
+					$dummy::Arr(ref a) => (&a[..self.len]).fmt(f),
 					$dummy::Vec(ref v) => v.fmt(f),
 				}
 			}
