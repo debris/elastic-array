@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate heapsize;
 use std::hash::{Hash, Hasher};
 use std::fmt;
