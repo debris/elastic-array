@@ -1,18 +1,20 @@
 extern crate heapsize;
+use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::fmt;
+use std::ops::Deref;
 use heapsize::HeapSizeOf;
 
 #[macro_export]
 macro_rules! impl_elastic_array {
 	($name: ident, $dummy: ident, $size: expr) => (
 		#[doc(hidden)]
-		enum $dummy <T> {
+		enum $dummy<T> {
 			Arr([T; $size]),
 			Vec(Vec<T>)
 		}
 
-		impl <T> $dummy <T> {
+		impl<T> $dummy<T> {
 			#[doc(hidden)]
 			pub fn slice(&self) -> &[T] {
 				match *self {
@@ -22,8 +24,8 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl <T> Clone for $dummy <T> where T: Copy {
-			fn clone(&self) -> $dummy <T> {
+		impl<T> Clone for $dummy<T> where T: Copy {
+			fn clone(&self) -> $dummy<T> {
 				match *self {
 					$dummy::Arr(ref a) => $dummy::Arr(*a),
 					$dummy::Vec(ref v) => $dummy::Vec(v.clone()),
@@ -36,9 +38,9 @@ macro_rules! impl_elastic_array {
 			len: usize
 		}
 
-		impl <T> Eq for $name <T> where T: Eq { } 
+		impl<T> Eq for $name<T> where T: Eq { } 
 
-		impl <T> fmt::Debug for $name<T> where T: fmt::Debug {
+		impl<T> fmt::Debug for $name<T> where T: fmt::Debug {
 			fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 				match self.raw {
 					$dummy::Arr(ref a) => (&a[..self.len]).fmt(f),
@@ -47,26 +49,31 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl <T> PartialEq for $name <T> where T: PartialEq {
-			fn eq(&self, other: &Self) -> bool {
-				self.slice() == other.slice()
+		impl<T, U> PartialEq<U> for $name<T> where T: PartialEq, U: Deref<Target=[T]> {
+			fn eq(&self, other: &U) -> bool {
+				self.slice() == &**other
 			}
 		}
 
-		impl <'a, T, B> PartialEq<&'a [B]> for $name <T> where T: PartialEq<B> {
-			fn eq(&self, other: &&'a [B]) -> bool {
-				self.slice() == *other
-
+		impl<T, U> PartialOrd<U> for $name<T> where T: PartialOrd, U: Deref<Target=[T]> {
+			fn partial_cmp(&self, other: &U) -> Option<Ordering> {
+				(&**self).partial_cmp(&*other)
 			}
 		}
 
-		impl <T> Hash for $name <T> where T: Hash {
+		impl<T> Ord for $name<T> where T: Ord {
+			fn cmp(&self, other: &Self) -> Ordering {
+				(&**self).cmp(&*other)
+			}
+		} 
+
+		impl<T> Hash for $name<T> where T: Hash {
 			fn hash<H>(&self, state: &mut H) where H: Hasher {
 				self.slice().hash(state)
 			}
 		}
 
-		impl <T> HeapSizeOf for $name<T> where T: HeapSizeOf {
+		impl<T> HeapSizeOf for $name<T> where T: HeapSizeOf {
 			fn heap_size_of_children(&self) -> usize {
 				match self.raw {
 					$dummy::Arr(_) => 0,
@@ -75,8 +82,8 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl <T> Clone for $name <T> where T: Copy {
-			fn clone(&self) -> $name <T> {
+		impl<T> Clone for $name<T> where T: Copy {
+			fn clone(&self) -> $name<T> {
 				$name {
 					raw: self.raw.clone(),
 					len: self.len,
@@ -84,7 +91,7 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl <T> $name<T> where T: Copy {
+		impl<T> $name<T> where T: Copy {
 			pub fn new() -> $name<T> {
 				$name {
 					raw: $dummy::Arr(unsafe { ::std::mem::uninitialized() }),
@@ -230,7 +237,7 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl <T> $name<T> {
+		impl<T> $name<T> {
 			fn slice(&self) -> &[T] {
 				match self.raw {
 					$dummy::Arr(ref a) => &a[..self.len],
@@ -239,7 +246,7 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl <T>::std::ops::Deref for $name<T> {
+		impl<T> Deref for $name<T> {
 			type Target = [T];
 
 			#[inline]
@@ -248,21 +255,21 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl <T>::std::convert::AsRef<[T]> for $name<T> {
+		impl<T> ::std::convert::AsRef<[T]> for $name<T> {
 			#[inline]
 			fn as_ref(&self) -> &[T] {
 				self.slice()
 			}
 		}
 
-		impl <T>::std::borrow::Borrow<[T]> for $name<T> {
+		impl<T> ::std::borrow::Borrow<[T]> for $name<T> {
 			#[inline]
 			fn borrow(&self) -> &[T] {
 				self.slice()
 			}
 		}
 
-		impl <T>::std::ops::DerefMut for $name<T> {
+		impl<T> ::std::ops::DerefMut for $name<T> {
 			#[inline]
 			fn deref_mut(&mut self) -> &mut [T] {
 				match self.raw {
@@ -270,6 +277,10 @@ macro_rules! impl_elastic_array {
 					$dummy::Vec(ref mut v) => v
 				}
 			}
+		}
+
+		impl<'a, T: 'a + Copy> From<&'a [T]> for $name<T> {
+			fn from(s: &'a [T]) -> Self { Self::from_slice(s) }
 		}
 	)
 }
