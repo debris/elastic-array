@@ -7,7 +7,7 @@ description = "Elastic vector backed by fixed size array"
 repository = "https://github.com/debris/elastic-array"
 
 [dependencies]
-heapsize = version = "0.4"
+heapsize = "0.4"
 
 [dev-dependencies]
 rand = "0.3"
