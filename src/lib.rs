@@ -38,7 +38,7 @@ macro_rules! impl_elastic_array {
 			len: usize
 		}
 
-		impl<T> Eq for $name<T> where T: Eq { } 
+		impl<T> Eq for $name<T> where T: Eq { }
 
 		impl<T> fmt::Debug for $name<T> where T: fmt::Debug {
 			fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
@@ -158,7 +158,7 @@ macro_rules! impl_elastic_array {
 				self.insert_slice(len, elements)
 			}
 
-			pub fn to_vec(self) -> Vec<T> {
+			pub fn into_vec(self) -> Vec<T> {
 				match self.raw {
 					$dummy::Arr(a) => {
 						let mut vec = vec![];
