@@ -11,3 +11,6 @@ heapsize = "0.4"
 
 [dev-dependencies]
 rand = "0.3"
+
+[badges]
+travis-ci = { repository = "debris/elastic-array" }
