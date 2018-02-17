@@ -91,6 +91,12 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
+		impl<T> Default for $name<T> where T: Copy {
+			fn default() -> $name<T> {
+				Self::new()
+			}
+		}
+
 		impl<T> $name<T> where T: Copy {
 			pub fn new() -> $name<T> {
 				$name {
