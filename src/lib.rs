@@ -1,8 +1,29 @@
+
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(not(feature = "std"), feature(alloc))]
+
+#[cfg(feature = "std")]
 extern crate heapsize;
-use std::cmp::Ordering;
-use std::hash::{Hash, Hasher};
-use std::fmt;
-use std::ops::Deref;
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+// Re-export libcore using an alias so that the macros can work without
+// requiring `extern crate core` downstream.
+#[doc(hidden)]
+pub extern crate core as core_;
+
+use core_::{
+	cmp::Ordering,
+	hash::{Hash, Hasher},
+	fmt,
+	ops::Deref,
+};
+
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
+#[cfg(feature = "std")]
 use heapsize::HeapSizeOf;
 
 #[macro_export]
@@ -73,6 +94,7 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
+		#[cfg(feature = "std")]
 		impl<T> HeapSizeOf for $name<T> where T: HeapSizeOf {
 			fn heap_size_of_children(&self) -> usize {
 				match self.raw {
@@ -100,7 +122,7 @@ macro_rules! impl_elastic_array {
 		impl<T> $name<T> where T: Copy {
 			pub fn new() -> $name<T> {
 				$name {
-					raw: $dummy::Arr(unsafe { ::std::mem::uninitialized() }),
+					raw: $dummy::Arr(unsafe { $crate::core_::mem::uninitialized() }),
 					len: 0
 				}
 			}
@@ -126,11 +148,11 @@ macro_rules! impl_elastic_array {
 						}
 					},
 					$dummy::Arr(_) => {
-						let mut vec = vec![];
+						let mut vec = Vec::new();
 						vec.reserve(self.len + 1);
 
 						unsafe {
-							::std::ptr::copy(self.raw.slice().as_ptr(), vec.as_mut_ptr(), self.len);
+							$crate::core_::ptr::copy(self.raw.slice().as_ptr(), vec.as_mut_ptr(), self.len);
 							vec.set_len(self.len);
 						}
 
@@ -155,7 +177,7 @@ macro_rules! impl_elastic_array {
 			}
 
 			pub fn clear(&mut self) {
-				self.raw = $dummy::Arr(unsafe { ::std::mem::uninitialized() });
+				self.raw = $dummy::Arr(unsafe { $crate::core_::mem::uninitialized() });
 				self.len = 0;
 			}
 
@@ -167,10 +189,10 @@ macro_rules! impl_elastic_array {
 			pub fn into_vec(self) -> Vec<T> {
 				match self.raw {
 					$dummy::Arr(a) => {
-						let mut vec = vec![];
+						let mut vec = Vec::new();
 						vec.reserve(self.len);
 						unsafe {	
-							::std::ptr::copy(a.as_ptr(), vec.as_mut_ptr(), self.len);
+							$crate::core_::ptr::copy(a.as_ptr(), vec.as_mut_ptr(), self.len);
 							vec.set_len(self.len);
 						}
 						vec
@@ -180,7 +202,7 @@ macro_rules! impl_elastic_array {
 			}
 
 			pub fn insert_slice(&mut self, index: usize, elements: &[T]) {
-				use std::ptr;
+				use $crate::core_::ptr;
 
 				let elen = elements.len();
 
@@ -204,7 +226,7 @@ macro_rules! impl_elastic_array {
 					},
 					// it deosn't, must be rewritten to vec
 					$dummy::Arr(_) => unsafe {
-						let mut vec = vec![];
+						let mut vec = Vec::new();
 						vec.reserve(self.len + elen);
 						{
 							let p = vec.as_mut_ptr();
@@ -261,21 +283,21 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		impl<T> ::std::convert::AsRef<[T]> for $name<T> {
+		impl<T> $crate::core_::convert::AsRef<[T]> for $name<T> {
 			#[inline]
 			fn as_ref(&self) -> &[T] {
 				self.slice()
 			}
 		}
 
-		impl<T> ::std::borrow::Borrow<[T]> for $name<T> {
+		impl<T> $crate::core_::borrow::Borrow<[T]> for $name<T> {
 			#[inline]
 			fn borrow(&self) -> &[T] {
 				self.slice()
 			}
 		}
 
-		impl<T> ::std::ops::DerefMut for $name<T> {
+		impl<T> $crate::core_::ops::DerefMut for $name<T> {
 			#[inline]
 			fn deref_mut(&mut self) -> &mut [T] {
 				match self.raw {
@@ -350,6 +372,7 @@ mod tests {
 		assert_eq!(r, &[1, 3 ,4]);
 	}
 
+	#[cfg(feature = "std")]
 	#[test]
 	fn use_in_map() {
 		use std::collections::HashMap;
@@ -361,6 +384,20 @@ mod tests {
 		map.insert(bytes, 1);
 		assert_eq!(map.get(&[3, 4][..]), Some(&1i32));
 	}
+
+	#[cfg(not(feature = "std"))]
+	#[test]
+	fn use_in_map() {
+		use alloc::collections::BTreeMap;
+		use core::borrow::Borrow;
+		let mut map: BTreeMap<BytesShort, i32> = BTreeMap::new();
+		let mut bytes = BytesShort::new();
+		bytes.append_slice(&[3, 4]);
+		assert_eq!(bytes.borrow() as &[u8], &[3, 4][..]);
+		map.insert(bytes, 1);
+		assert_eq!(map.get(&[3, 4][..]), Some(&1i32));
+	}
+
 }
 
 

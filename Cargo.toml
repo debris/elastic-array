@@ -14,3 +14,8 @@ rand = "0.4"
 
 [badges]
 travis-ci = { repository = "debris/elastic-array" }
+
+[features]
+default = ["std"]
+std = [
+]
