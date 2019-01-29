@@ -371,9 +371,9 @@ mod tests {
 
 	#[test]
 	fn use_in_map() {
-	  #[cfg(feature = "std")]
+		#[cfg(feature = "std")]
 		use std::collections::BTreeMap;
-	  #[cfg(not(feature = "std"))]
+		#[cfg(not(feature = "std"))]
 		use alloc::collections::BTreeMap;
 		use ::core_::borrow::Borrow;
 		let mut map: BTreeMap<BytesShort, i32> = Default::default();
