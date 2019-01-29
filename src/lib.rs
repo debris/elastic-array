@@ -2,7 +2,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(alloc))]
 
-#[cfg(feature = "std")]
 extern crate heapsize;
 
 #[cfg(not(feature = "std"))]
@@ -23,7 +22,6 @@ use core_::{
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
-#[cfg(feature = "std")]
 use heapsize::HeapSizeOf;
 
 #[macro_export]
@@ -94,7 +92,6 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
-		#[cfg(feature = "std")]
 		impl<T> HeapSizeOf for $name<T> where T: HeapSizeOf {
 			fn heap_size_of_children(&self) -> usize {
 				match self.raw {
@@ -372,25 +369,14 @@ mod tests {
 		assert_eq!(r, &[1, 3 ,4]);
 	}
 
-	#[cfg(feature = "std")]
 	#[test]
 	fn use_in_map() {
-		use std::collections::HashMap;
-		use std::borrow::Borrow;
-		let mut map: HashMap<BytesShort, i32> = HashMap::new();
-		let mut bytes = BytesShort::new();
-		bytes.append_slice(&[3, 4]);
-		assert_eq!(bytes.borrow() as &[u8], &[3, 4][..]);
-		map.insert(bytes, 1);
-		assert_eq!(map.get(&[3, 4][..]), Some(&1i32));
-	}
-
-	#[cfg(not(feature = "std"))]
-	#[test]
-	fn use_in_map() {
+	  #[cfg(feature = "std")]
+		use std::collections::BTreeMap;
+	  #[cfg(not(feature = "std"))]
 		use alloc::collections::BTreeMap;
-		use core::borrow::Borrow;
-		let mut map: BTreeMap<BytesShort, i32> = BTreeMap::new();
+		use ::core_::borrow::Borrow;
+		let mut map: BTreeMap<BytesShort, i32> = Default::default();
 		let mut bytes = BytesShort::new();
 		bytes.append_slice(&[3, 4]);
 		assert_eq!(bytes.borrow() as &[u8], &[3, 4][..]);
@@ -399,5 +385,3 @@ mod tests {
 	}
 
 }
-
-
