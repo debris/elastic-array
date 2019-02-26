@@ -2,6 +2,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(alloc))]
 
+#[cfg(feature = "std")]
 extern crate heapsize;
 
 #[cfg(not(feature = "std"))]
@@ -22,6 +23,7 @@ use core_::{
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
+#[cfg(feature = "std")]
 use heapsize::HeapSizeOf;
 
 #[macro_export]
@@ -92,6 +94,7 @@ macro_rules! impl_elastic_array {
 			}
 		}
 
+		#[cfg(feature = "std")]
 		impl<T> HeapSizeOf for $name<T> where T: HeapSizeOf {
 			fn heap_size_of_children(&self) -> usize {
 				match self.raw {

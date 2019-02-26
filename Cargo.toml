@@ -7,7 +7,7 @@ description = "Elastic vector backed by fixed size array"
 repository = "https://github.com/debris/elastic-array"
 
 [dependencies]
-heapsize = "0.4"
+heapsize = { version = "0.4", optional = true }
 
 [dev-dependencies]
 rand = "0.4"
@@ -18,4 +18,5 @@ travis-ci = { repository = "debris/elastic-array" }
 [features]
 default = ["std"]
 std = [
+  "heapsize"
 ]
